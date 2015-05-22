@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <style>
+            body {
+            margin: 0px;
+            padding: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="myCanvas" width="900" height="900"></canvas>
+
+        <script>
+
+            function loadImages(sources, callback) {
+            
+                var images = {};
+                var loadedImages = 0;
+                var numImages = 0;
+
+                for (var src in sources) {
+                    numImages++;
+                }
+
+                for (var src in sources) {
+
+                    images[src] = new Image();
+
+                    images[src].onload = function() {
+                        if (++loadedImages >= numImages) {
+                            callback(images);
+                        }
+                    };
+
+                    images[src].src = sources[src];
+                }
+            }
+
+            var canvas = document.getElementById('myCanvas');
+            var context = canvas.getContext('2d');
+
+            var offsetX = 12;
+            var offsetY = -3;
+
+            var sources = {
+                board:      'static/images/board.png',
+                king:       'static/images/king.png',    
+                defender:   'static/images/defender.png',    
+                knight:     'static/images/knight.png',    
+                raider:     'static/images/raider.png',    
+                commander:  'static/images/commander.png'    
+            };
+
+            loadImages(sources, function(images) {
+                
+                var width = images.board.naturalWidth;
+                var squareWidth = width/11 
+
+                context.drawImage(images.board, 100, 30);
+
+                for (i=0; i<11; i++) {
+                    for (j=0; j<11; j++) {
+                        if ( (  ((i==0) || (i==10) ) && (j>2) && (j<8)) ||
+                                ((j==0) || (j==10) ) && (i>2) && (i<8)) {
+
+                            context.drawImage(images.raider, 
+                                    100 + j*squareWidth + offsetX, 
+                                    30 + i*squareWidth + offsetY);
+                        }
+                    }
+                }
+
+            });
+            
+
+        </script>
+
+    </body>
+</html>   

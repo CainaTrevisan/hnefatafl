@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+    <head>
+
+        <style>
+
+            #raider{ 
+                position: absolute;
+                width: 43px; 
+                height: 80px;
+                background-image: url(../static/images/raider.png);
+                background-repeat: no-repeat; 
+            }
+
+            #commander{ 
+                position: absolute;
+                width: 43px; 
+                height: 80px;
+                background-image: url(../static/images/commander.png);
+                background-repeat: no-repeat; 
+            }
+
+            #defender{ 
+                position: absolute;
+                width: 43px; 
+                height: 80px;
+                background-image: url(../static/images/defender.png);
+                background-repeat: no-repeat; 
+            }
+
+            #knight{ 
+                position: absolute;
+                width: 43px; 
+                height: 80px;
+                background-image: url(../static/images/knight.png);
+                background-repeat: no-repeat; 
+            }
+
+            #king{ 
+                position: absolute;
+                width: 43px; 
+                height: 80px;
+                background-image: url(../static/images/king.png);
+                background-repeat: no-repeat; 
+            }
+
+            div.normal_square { 
+                position: absolute;
+                width: 80px;
+                height: 80px; 
+                border: 2px solid #999;
+                border-color: #3f2110;
+                background-color: #ded0b5;
+            }
+
+            div.piece_square { 
+                position: absolute;
+                width: 80px;
+                height: 80px; 
+                border: 2px solid #999;
+                border-color: #3f2110;
+                background-color: #917452;
+            }
+
+            div.commander_square { 
+                position: absolute;
+                width: 80px;
+                height: 80px; 
+                border: 2px solid #999;
+                border-color: #3f2110;
+                background-color: #6B5841;
+            }
+            
+            div.hostile_square{ 
+                position: absolute;
+                width: 80px;
+                height: 80px; 
+                border: 2px solid #999;
+                border-color: #3f2110;
+                background-color: #3f2110;
+            }
+
+            div.hovered{
+                background: #aaa; 
+            } 
+
+            .button{
+                position: absolute;
+                top: 900px;
+            }
+
+        </style>
+
+        <script type="text/javascript" 
+        src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js">
+        </script>
+        
+        <script type="text/javascript" 
+        src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js">
+        </script>
+
+        <script type="text/javascript">
+
+            $( init );
+
+            var board;
+            
+            function init() {
+
+                $('#raiders').html('');
+                $('#commanders').html('');
+                $('#defenders').html('');
+                $('#knights').html('');
+                $('#kings').html('');
+                $('#squares').html('');
+
+                // Draw Board
+                var squares = [];
+
+                var x = 0;
+                var y = 0;
+                var newY = 0;
+                var newX = 0;
+                var offsetY = 0; 
+                var offsetX = 0; 
+
+                for (i=0; i<11; i++) {
+
+                    offsetX = 0;
+
+                    for (j=0; j<11; j++) {
+                        squares.push(i*11+j);
+
+                        if( ((i==0) && ( (j==0) || (j==10)) ) ||
+                                 ((i==10) && ( (j==0) || (j==10)) ) ||
+                                 ((i==5) && (j==5)) ) {
+
+                            $('<div class="hostile_square" id="sq_' + (i*11+j) + '">' + 
+                                    '</div>').
+                            data('square',squares[i*11+j]).
+                            css("top",offsetY).css("left", offsetX).
+                            appendTo('#squares').droppable( { 
+
+                                hoverClass: 'hovered',
+                                drop:handleDropEvent
+                            });
+
+                        }
+
+                        else if ( ((i==0) || (i==10) || (i==5)) && ((j>2) && (j<8)) ||
+                             ((j==0) || (j==10) || (j==5)) && ((i>2) && (i<8)) ||
+                             ((i>3) && (i<7)) && ((j>3) &&(j<7)) ) {
+
+                            $('<div class="piece_square" id="sq_' + (i*11+j) + '">' + 
+                                    '</div>').
+                            data('square',squares[i*11+j]).
+                            css("top",offsetY).css("left", offsetX).
+                            appendTo('#squares').droppable( { 
+
+                                hoverClass: 'hovered',
+                                drop:handleDropEvent
+                            });
+
+                        }
+
+                        else if ( ((i==1) && (j==5)) ||
+                                  ((i==5) && (j==1)) ||
+                                  ((i==5) && (j==9)) ||
+                                  ((i==9) && (j==5)) ){
+                       
+                            $('<div class="commander_square" id="sq_' + (i*11+j) + '">' + 
+                                    '</div>').
+                            data('square',squares[i*11+j]).
+                            css("top",offsetY).css("left", offsetX).
+                            appendTo('#squares').droppable( { 
+
+                                hoverClass: 'hovered',
+                                drop:handleDropEvent
+                            });
+
+                        }
+
+                        else {
+
+                            $('<div class="normal_square" id="sq_' + (i*11+j) + '">' + 
+                                    '</div>').
+                            data('square',squares[i*11+j]).
+                            css("top",offsetY).
+                            css("left", offsetX).
+                            appendTo('#squares').droppable( { 
+
+                                hoverClass: 'hovered',
+                                drop:handleDropEvent
+                            });
+                        
+                        }
+
+                        offsetX += 80;
+                    }
+
+                    offsetY += 80;
+                }
+
+                var data;
+
+                // Get piece positions from server and draw them
+                $.getJSON('start', function(data) {
+                
+                    var raiders = [];
+                    var commanders = [];
+                    var defenders = [];
+                    var knights = [];
+                    var kings = [];
+
+                    board = data;
+
+                    var r = 0;
+                    var c = 0;
+                    var d = 0;
+                    var k = 0;
+                    var king = 0;
+
+                    for (i=0; i<11; i++) {
+                        
+                        for (j=0; j<11; j++) {
+                            
+                            var pos = i*11+j;
+
+                            switch (data[i][j]) {
+                                
+                                case 'r':
+                                    raiders.push(r);
+
+                                    $('<div id="raider"> </div>').
+                                        data('raider', raiders[r]).
+                                        position( { of: $('#sq_' + pos + ''), 
+                                                my:'center center', at:'center center'}).
+                                        appendTo('#raiders').draggable( {
+
+                                        containment: '#board',
+                                        stack: '#raiders div',
+                                        cursor: 'move',
+                                        revert: true,
+                                        start: handleOnMouseDown
+                                    });                
+
+                                    r++; 
+                                    break;
+
+                                case "c":
+                                    commanders.push(c);
+
+                                    $('<div id="commander"> </div>').
+                                    data('commander', commanders[c]).
+                                    position( { of: $('#sq_' + pos + ''), 
+                                            my: 'center center', at: 'center center'}).
+                                    appendTo('#commanders').draggable( {
+                                        
+                                        containment: '#board',
+                                        stack: '#commanders div',
+                                        cursor: 'move',
+                                        revert: true,
+                                        start: handleOnMouseDown
+                                    }); 
+
+                                    c++;
+                                    break;
+                                    
+                                case "s":
+                                    defenders.push(d);
+
+                                    $('<div id="defender"> </div>').
+                                    data('defender', defenders[d]).
+                                    position( { of: $('#sq_' + pos + ''), 
+                                            my: 'center center', at: 'center center'}).
+                                    appendTo('#defenders').draggable( {
+                                        
+                                        containment: '#board',
+                                        stack: '#defenders div',
+                                        cursor: 'move',
+                                        revert: true,
+                                        start: handleOnMouseDown
+                                    }); 
+
+                                    d++;
+                                    break;
+
+                                case "k":
+                                    knights.push(k);
+
+                                    $('<div id="knight"> </div>').
+                                    data('knight', knights[k]).
+                                    position( { of: $('#sq_' + pos + ''), 
+                                            my: 'center center', at: 'center center'}).
+                                    appendTo('#knights').draggable( {
+                                        
+                                        containment: '#board',
+                                        stack: '#knights div',
+                                        cursor: 'move',
+                                        revert: true,
+                                        start: handleOnMouseDown
+                                    }); 
+
+                                    k++;
+                                    break;
+
+                                case "K":
+                                    kings.push(king);
+
+                                    $('<div id="king"> </div>').
+                                    data('king', kings[king]).
+                                    position( { of: $('#sq_' + pos + ''), 
+                                            my: 'center center', at: 'center center'}).
+                                    appendTo('#kings').draggable( {
+                                        
+                                        containment: '#board',
+                                        stack: '#kings div',
+                                        cursor: 'move',
+                                        revert: true,
+                                        start: handleOnMouseDown
+                                    }); 
+                                    
+                                    king++;
+                                    break;
+            
+                            }
+                        }             
+                    }
+                });
+            }
+
+            function handleOnMouseDown( event, ui ) {
+
+                x = Math.ceil(ui.position.left/80);
+                y = Math.ceil(ui.position.top/80);
+
+
+                //position( { of: $('#sq_' + pos + ''), 
+                //    my: 'center center', at: 'center center'}).
+            }
+
+            function handleDropEvent( event, ui ) {
+         
+                newX = Math.ceil((ui.position.left+21)/80);
+                newY = Math.ceil((ui.position.top+40)/80);
+                
+                var data = {
+                    "x": x,
+                    "y": y,
+                    "new_x": newX,
+                    "new_y": newY,
+                    "board": board
+                }; 
+                
+                alert("X: " + x + " Y: " + y + 
+                        " NEW X: " + newX + " NEW Y: " + newY);                
+
+                $.ajax( {
+                
+                    url: 'send_move',
+                    data: JSON.stringify(data),
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    
+                    success: function( response ) {
+                        
+                        var status = response["status"];            
+                        var data = response["board"];
+
+                        console.log(status);
+                        
+                        board = data; 
+
+                        if (status == "OK") {
+
+                            var raiders = [];
+                            var commanders = [];
+                            var defenders = [];
+                            var knights = [];
+                            var kings = [];
+
+                            board = data;
+
+                            var r = 0;
+                            var c = 0;
+                            var d = 0;
+                            var k = 0;
+                            var king = 0;
+
+                            for (i=0; i<11; i++) {
+                                
+                                for (j=0; j<11; j++) {
+                                    
+                                    var pos = i*11+j;
+
+                                    switch (data[i][j]) {
+                                        
+                                        case 'r':
+                                            raiders.push(r);
+
+                                            $('<div id="raider"> </div>').
+                                                data('raider', raiders[r]).
+                                                position( { of: $('#sq_' + pos + ''), 
+                                                        my:'center center', at:'center center'}).
+                                                appendTo('#raiders').draggable( {
+
+                                                containment: '#board',
+                                                stack: '#raiders div',
+                                                cursor: 'move',
+                                                revert: true,
+                                                start: handleOnMouseDown
+                                            });                
+
+                                            r++; 
+                                            break;
+
+                                        case "c":
+                                            commanders.push(c);
+
+                                            $('<div id="commander"> </div>').
+                                            data('commander', commanders[c]).
+                                            position( { of: $('#sq_' + pos + ''), 
+                                                    my: 'center center', at: 'center center'}).
+                                            appendTo('#commanders').draggable( {
+                                                
+                                                containment: '#board',
+                                                stack: '#commanders div',
+                                                cursor: 'move',
+                                                revert: true,
+                                                start: handleOnMouseDown
+                                            }); 
+
+                                            c++;
+                                            break;
+                                            
+                                        case "s":
+                                            defenders.push(d);
+
+                                            $('<div id="defender"> </div>').
+                                            data('defender', defenders[d]).
+                                            position( { of: $('#sq_' + pos + ''), 
+                                                    my: 'center center', at: 'center center'}).
+                                            appendTo('#defenders').draggable( {
+                                                
+                                                containment: '#board',
+                                                stack: '#defenders div',
+                                                cursor: 'move',
+                                                revert: true,
+                                                start: handleOnMouseDown
+                                            }); 
+
+                                            d++;
+                                            break;
+
+                                        case "k":
+                                            knights.push(k);
+
+                                            $('<div id="knight"> </div>').
+                                            data('knight', knights[k]).
+                                            position( { of: $('#sq_' + pos + ''), 
+                                                    my: 'center center', at: 'center center'}).
+                                            appendTo('#knights').draggable( {
+                                                
+                                                containment: '#board',
+                                                stack: '#knights div',
+                                                cursor: 'move',
+                                                revert: true,
+                                                start: handleOnMouseDown
+                                            }); 
+
+                                            k++;
+                                            break;
+
+                                        case "K":
+                                            kings.push(king);
+
+                                            $('<div id="king"> </div>').
+                                            data('king', kings[king]).
+                                            position( { of: $('#sq_' + pos + ''), 
+                                                    my: 'center center', at: 'center center'}).
+                                            appendTo('#kings').draggable( {
+                                                
+                                                containment: '#board',
+                                                stack: '#kings div',
+                                                cursor: 'move',
+                                                revert: true,
+                                                start: handleOnMouseDown
+                                            }); 
+                                            
+                                            king++;
+                                            break;
+                    
+                                    }
+                                }             
+                            }
+
+
+                            //ui.draggable.addClass( 'correct' );
+                            //ui.draggable.position( {of: $(this), 
+                            //        my: 'center center', at: 'center center' } );
+                            //$(this).droppable('disable');
+                        }
+                    },
+                    error: function( error ) {
+                        console.log(error);
+                    }
+                });  
+                   
+            }
+
+        </script>
+
+    </head>
+    <body>
+
+        <div id="board" style="height: 880px; width: 880px;">
+
+    
+
+            <div id="squares"> </div>
+
+            <div id="raiders"> </div>
+            <div id="commanders"> </div>
+            <div id="defenders"> </div>
+            <div id="knights"> </div>
+            <div id="kings"> </div>
+
+        </div>
+
+        <button onclick="init()"> Start </button> 
+
+    </body>
+</html>

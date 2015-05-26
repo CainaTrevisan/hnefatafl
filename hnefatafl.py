@@ -38,24 +38,28 @@ app = Flask(__name__)
 def hello():
     return 'Hello!\nAdd "/hnefatafl" on the URL to play Hnefatafl'
     
+@app.route('/drag')
+def drag():
+    return render_template('drag.html')
+
 @app.route('/hnefatafl')
 def hnefatafl():
     return render_template('board.html')
 
 @app.route('/send_move', methods=['POST'])
-def sendMove():
+def send_move():
     data = request.get_json()
 
     # Somewhere on the code I swapped x and y. Gotta invert here to work
     # TODO: Fix this bullshit
-
     y = data["x"]
     x = data["y"]
     new_y = data["new_x"]
     new_x = data["new_y"]
+    attacker_turn = data["turn"]
     board = data["board"]
 
-    print("received:(%d,%d) (%d,%d)" % ( x, y, new_x, new_y ) )
+    print("received: t:%d (%d,%d) (%d,%d)" % ( attacker_turn, x, y, new_x, new_y ) )
 
     print_board(board, 11, 11)
 
@@ -66,19 +70,54 @@ def sendMove():
 
     add_padding(board)
 
-    if not valid_move(board, x, y, new_x, new_y):
+    lines = len(board)
+    
+    columns = len(board[0])
+
+    corners = ( (1,1), (1,columns), (lines,1), (lines, columns) )
+
+    adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
+                    (lines,2), (lines,columns-1), (lines-1,columns) )
+
+    throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
+
+    king_pos = ( throne[0], throne[1] )
+
+   
+    if not valid_move(board, x, y, new_x, new_y, attacker_turn):
         print("Please enter a valid move")
         return json.dumps( { 'status':"INV_MOVE" } )
 
     update_board(board, x, y, new_x, new_y)
 
+    captured = []
+
+    captured = capture(board, new_x, new_y, captured, attacker_turn)
+
+    if captured:
+
+        for i,j in captured: 
+            board[i][j] = EMPTY
+
+        print("Piece Captured!")                
+
+# TODO: Berserk rule
+#        # Berserk rule 
+#        if can_capture(board, new_x, new_y):
+#            berserk = True                    
+#        
+#        if berserk and not captured: 
+#            print("Invalid Move! To play again you must capture")
+
     remove_padding(board)
-   
+  
+    print("Sending Board")
+
     print_board(board, 11, 11)
 
     attacker_turn = not attacker_turn;
 
-    return json.dumps( { 'status':'OK', 'board':board } )
+    return json.dumps( { 'status':'OK', 'board':board, 'turn': attacker_turn } )
 
 @app.route('/start', methods=['GET'])
 def start():
@@ -105,7 +144,7 @@ def start():
 
     print_board(board, 11, 11)
 
-    return json.dumps(board)
+    return json.dumps( { 'board':board, 'turn':True } )
 
 #-------------------------------------------------------------------------------
 # Extend Matrix on all directions by one so that edge checking is not needed
@@ -270,7 +309,7 @@ def king_captured(board):
     return False
 
 #-------------------------------------------------------------------------------
-def valid_move(board, x, y, new_x, new_y):
+def valid_move(board, x, y, new_x, new_y, attacker_turn):
 
     if (x < new_x):
         x_begin = x
@@ -380,7 +419,7 @@ def can_capture(board, x, y):
 
         while (i<12) and (i>0) and (j<12) and (j>0) and (board[i][j] == EMPTY):
 
-            if capture(board, i, j, captured):                         
+            if capture(board, i, j, captured, attacker_turn):                         
                 return True
 
             if board[x][y] == KING:    
@@ -394,7 +433,7 @@ def can_capture(board, x, y):
     return False
                 
 #-------------------------------------------------------------------------------
-def capture(board, x, y, captured):
+def capture(board, x, y, captured, attacker_turn):
 
     for n in neighbors:
 

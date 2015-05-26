@@ -32,6 +32,7 @@ def start():
     f = open(sys.argv[1], "r")
     board = [ ln.strip().split() for ln in f ]
     
+    print(board)
     lines = len(board)
     columns = len(board[0])
 

@@ -105,6 +105,8 @@
 
             var board;
             
+            var attackerTurn;
+
             function init() {
 
                 $('#raiders').html('');
@@ -153,7 +155,6 @@
 
                             $('<div class="piece_square" id="sq_' + (i*11+j) + '">' + 
                                     '</div>').
-                            data('square',squares[i*11+j]).
                             css("top",offsetY).css("left", offsetX).
                             appendTo('#squares').droppable( { 
 
@@ -212,7 +213,8 @@
                     var knights = [];
                     var kings = [];
 
-                    board = data;
+                    board = data["board"];
+                    attackerTurn = data["turn"];
 
                     var r = 0;
                     var c = 0;
@@ -226,7 +228,7 @@
                             
                             var pos = i*11+j;
 
-                            switch (data[i][j]) {
+                            switch (board[i][j]) {
                                 
                                 case 'r':
                                     raiders.push(r);
@@ -344,16 +346,21 @@
                 newX = Math.ceil((ui.position.left+21)/80);
                 newY = Math.ceil((ui.position.top+40)/80);
                 
+                console.log(board);
+
                 var data = {
                     "x": x,
                     "y": y,
                     "new_x": newX,
                     "new_y": newY,
+                    "turn" : attackerTurn,
                     "board": board
                 }; 
                 
                 alert("X: " + x + " Y: " + y + 
                         " NEW X: " + newX + " NEW Y: " + newY);                
+
+                console.log(data);
 
                 $.ajax( {
                 
@@ -364,23 +371,31 @@
                     dataType: 'json',
                     
                     success: function( response ) {
-                        
-                        var status = response["status"];            
-                        var data = response["board"];
+                       
+                        console.log(response);
 
+                        console.log(this.data);
+
+                        var status = response["status"];            
+                        
                         console.log(status);
                         
-                        board = data; 
-
                         if (status == "OK") {
+
+                            attackerTurn = response["turn"];
+                            board = response["board"];
+
+                            $('#raiders').html('');
+                            $('#commanders').html('');
+                            $('#defenders').html('');
+                            $('#knights').html('');
+                            $('#kings').html('');
 
                             var raiders = [];
                             var commanders = [];
                             var defenders = [];
                             var knights = [];
                             var kings = [];
-
-                            board = data;
 
                             var r = 0;
                             var c = 0;
@@ -394,7 +409,7 @@
                                     
                                     var pos = i*11+j;
 
-                                    switch (data[i][j]) {
+                                    switch (board[i][j]) {
                                         
                                         case 'r':
                                             raiders.push(r);
@@ -495,11 +510,10 @@
                                 }             
                             }
 
-
-                            //ui.draggable.addClass( 'correct' );
-                            //ui.draggable.position( {of: $(this), 
-                            //        my: 'center center', at: 'center center' } );
-                            //$(this).droppable('disable');
+                            ui.draggable.addClass( 'correct' );
+                            ui.draggable.position( {of: $(this), 
+                                    my: 'center center', at: 'center center' } );
+                            $(this).droppable('disable');
                         }
                     },
                     error: function( error ) {

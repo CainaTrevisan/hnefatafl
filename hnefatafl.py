@@ -12,6 +12,8 @@ if len(sys.argv) != 2:
 
 #------------------------------------------------------------------------------
 # Global Variables
+# TODO: Use classes and get rid of most of the global variables
+
 neighbors     = ( (-1,0), (0,-1), (1,0), (0,1) )
 
 throne        = (6,6)
@@ -22,6 +24,7 @@ corners       = ( (1,1), (1,11), (11,1), (11,11) )
 adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
                 (10,2), (11,10), (10,11) )
 
+# TODO: Make it work with different boards given as initial state
 class Board():
     def __init__(self):
 
@@ -40,7 +43,7 @@ class Board():
         self.adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
                              (10,2), (11,10), (10,11) )
 
-        self.board    = [['+','_','_','r','r','r','r','r','_','_','+'],
+        self.board    = [['_','_','_','r','r','r','r','r','_','_','_'],
                          ['_','_','_','_','_','r','_','_','_','_','_'],                 
                          ['_','_','_','_','_','_','_','_','_','_','_'],                 
                          ['r','_','_','_','_','s','_','_','_','_','r'],                 
@@ -50,7 +53,7 @@ class Board():
                          ['r','_','_','_','_','s','_','_','_','_','r'],                 
                          ['_','_','_','_','_','_','_','_','_','_','_'],                 
                          ['_','_','_','_','_','r','_','_','_','_','_'],                 
-                         ['+','_','_','r','r','r','r','r','_','_','+']]
+                         ['_','_','_','r','r','r','r','r','_','_','_']]
 
 
     def __init__(self, variant):
@@ -70,10 +73,7 @@ class Board():
 
         self.king_pos = ( throne[0], throne[1] )
 
-        # Differentiate corners
-        for i,j in self.corners:
-            self.board[i][j] = '+'
-
+# TODO: Create enum pieces
 # Pieces
 KING       = 'K'
 SOLDIER    = 's'
@@ -87,20 +87,23 @@ HOSTILE_SQ = '+'
 # Web 
 app = Flask(__name__)
 
+#------------------------------------------------------------------------------
 @app.route('/')
 def hello():
     return 'Hello!\nAdd "/hnefatafl" on the URL to play Hnefatafl'
     
-@app.route('/drag')
-def drag():
-    return render_template('drag.html')
-
+#------------------------------------------------------------------------------
 @app.route('/hnefatafl')
 def hnefatafl():
     return render_template('board.html')
 
+#------------------------------------------------------------------------------
+# Receive a game state and new move from client, process it 
+# and send new game state back
 @app.route('/send_move', methods=['POST'])
+
 def send_move():
+
     data = request.get_json()
 
     # Somewhere on the code I swapped x and y. Gotta invert here to work
@@ -138,7 +141,6 @@ def send_move():
 
     king_pos = ( throne[0], throne[1] )
 
-   
     if not valid_move(board, x, y, new_x, new_y, attacker_turn):
         print("Please enter a valid move")
         return json.dumps( { 'status':"INV_MOVE" } )
@@ -183,24 +185,21 @@ def send_move():
 
     return json.dumps( { 'status':'OK', 'board':board, 'turn': attacker_turn, 'v_mesg': victory_message } )
 
+
+#-------------------------------------------------------------------------------
+# Start communication with client. 
+# Send initial board
+#
+# TODO: Currently this code relies on global variables.
+# It would be ideal to have a session for every game and keep variables there
+
 @app.route('/start', methods=['GET'])
+
 def start():
+
     print ('Start Game: Sending initial board')
 
-    f = open(sys.argv[1], "r")
     board = [ ln.strip().split() for ln in open(sys.argv[1], "r") ]
-
-    lines = len(board)
-    columns = len(board[0])
-
-    corners = ( (1,1), (1,columns), (lines,1), (lines, columns) )
-
-    adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
-                    (lines,2), (lines,columns-1), (lines-1,columns) )
-
-    throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
-
-    king_pos = ( throne[0], throne[1] )
 
     print_board(board, 11, 11)
 
@@ -252,54 +251,6 @@ def print_board(board, n, m):
         sys.stdout.write('\n')
 
 #-------------------------------------------------------------------------------
-def valid_coordinate(coordinate):
-
-    if ( ( len(coordinate) != 2) or 
-            (coordinate[0] < 1) or (coordinate[0] > 11) or 
-            (coordinate[1] < 1) or (coordinate[1] > 11) ):
-        
-        return False
-   
-    return True
-
-#-------------------------------------------------------------------------------
-# TODO: Make sure that invalid inputs do not make the game crash
-
-def get_coordinates():
-
-    coordinate =  [ int(i) for i in input().split() ]
-
-    while not valid_coordinate(coordinate):
-
-        sys.stdout.write("Input Invalid\n" + 
-                "Enter 2 integers between 1 and 11 separated by space\n")
-
-        coordinate =  [ int(i) for i in input("Coordinates(X Y):").split() ]
-
-    return coordinate
-
-#-------------------------------------------------------------------------------
-def get_move(board):
-
-    sys.stdout.write("Type the coordinate of the piece you will move:")
-    x, y = get_coordinates()
-    
-    sys.stdout.write("Type the new coordinate:")
-    new_x, new_y = get_coordinates()
-
-    while not valid_move(board, x, y, new_x, new_y):
-
-        print("Please enter a valid move")
-
-        sys.stdout.write("Type the coordinate of the piece you will move:")
-        x, y = get_coordinates()
-        
-        sys.stdout.write("Type the new coordinate:")
-        new_x, new_y = get_coordinates()
-
-    return  ( x, y, new_x, new_y )
-
-#-------------------------------------------------------------------------------
 def king_fled(board):
 
     for i,j in corners:
@@ -320,7 +271,6 @@ def king_in_throne():
 def king_near_throne():
 
     for i,j in neighbors:
-
         if king_pos == ( throne[0]+i, throne[1]+j ):
             return True
 
@@ -336,6 +286,9 @@ def king_near_corner():
     return False    
 
 #-------------------------------------------------------------------------------
+# Does not work when king is sandwiched by commanders. 
+# TODO: Make it work for every case it should. 
+
 def king_captured(board):
 
     adj = 0
@@ -353,7 +306,7 @@ def king_captured(board):
 
             adj+=1
 
-            if not king_in_throne:
+            if not( (king_pos[0]+i == throne[0]) and ([king_pos[1]+j == throne[1]]) ):
 
                 if i == 0:
                     hor_commanders+=1
@@ -369,6 +322,8 @@ def king_captured(board):
     return False
 
 #-------------------------------------------------------------------------------
+# TODO: King short jumping everytime
+
 def valid_move(board, x, y, new_x, new_y, attacker_turn):
 
     if (x < new_x):
@@ -386,6 +341,8 @@ def valid_move(board, x, y, new_x, new_y, attacker_turn):
         y_begin = new_y
         y_end = y
         
+# Throughout the code there is many prints telling what went wrong.
+# TODO: Send them to the front-end to display them to the user      
 
     if board[x][y] == EMPTY:
         print("There is no piece on the given coordinates")
@@ -493,6 +450,9 @@ def can_capture(board, x, y):
     return False
                 
 #-------------------------------------------------------------------------------
+# TODO: Currently every test that uses HOSTILE_SQ is probably not working
+# Fix it
+
 def capture(board, x, y, captured, attacker_turn):
 
     for n in neighbors:
@@ -534,158 +494,7 @@ def update_board(board, x, y, new_x, new_y):
         king_pos = (new_x, new_y)
 
 #-------------------------------------------------------------------------------
-# Main
+# MAIN
 #-------------------------------------------------------------------------------
-#
-# Read Board From File
-# f = open(sys.argv[1], "r")
-#
-# board = [ ln.strip().split() for ln in f ]
-#
-# lines = len(board)
-#
-# columns = len(board[0])
-#
-#-------------------------------------------------------------------------------
-# Find out corners, corner neighbors and throne coordinates for the given board
-#
-# corners = ( (1,1), (1,columns), (lines,1), (lines,columns) )
-#
-# adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
-#            (lines,2), (lines,columns-1), (lines-1,columns) )
-#
-# throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
-#
-# king_pos = ( throne[0], throne[1] )
-#
-#-------------------------------------------------------------------------------
-# Extend Matrix on all directions by one so that edge checking is not needed
-#
-# for i in range(0,11):
-#    board[i].insert(0,'_')
-#    board[i].insert(len(board[i]),'_')
-#
-# padding = ['_','_','_','_','_','_','_','_','_','_','_','_','_']
-#
-# board.insert(0,padding)
-#
-# board.insert(len(board),padding)
-#
-#-------------------------------------------------------------------------------
-# Differentiate corners
-#
-# for i,j in corners:
-#     board[i][j] = '+'
-#
-#-------------------------------------------------------------------------------
-# Print Header
-#
-# sys.stdout.write('\n')                
-# print("BERSERK HNEFATAFL")
-# print("K = KING")
-# print("s = DEFENDER'S SOLDIERS")
-# print("k = KNIGHT")
-# print("r = RAIDERS")
-# print("k = COMMANDERS")
-#
-#-------------------------------------------------------------------------------
-# Game Loop
-#
-#attacker_turn = True 
-#while True:
-#
-#    # Differentiate throne when the king is not there
-#    if board[throne[0]] [throne[1]] == EMPTY:
-#        board[throne[0]] [throne[1]] = '+'
-#
-#    # Print Board 
-#    sys.stdout.write('\n')                
-#    print_board(board)
-#    sys.stdout.write('\n')                
-#    
-#    if attacker_turn:
-#        print("Attackers turn:")
-#    else:
-#        print("Defenders turn:")
-#
-#    # Move Piece
-#
-#    x, y, new_x, new_y = get_move(board)
-
-#    update_board(board, x, y, new_x, new_y)
-
-#    # Captures
-#    
-#    captured = []
-#    captured = capture(board, new_x, new_y, captured)
-#
-#    while captured:
-#       
-#        for c in captured: 
-#            board[ c[0] ][ c[1] ] = EMPTY
-#
-#        print_board(board)    
-#        
-#        print("Piece Captured!")                
-#       
-#        # Berserk rule 
-#
-#        if can_capture(board, new_x, new_y):
-#            again = input("Capture again with the same piece(y/n):")
-#        
-#            while (again != 'y') and (again != 'n'):
-#                again = input("Capture again with the same piece(y/n):")
-#
-#            if again == 'y':
-#
-#                sys.stdout.write("New Coordinate:")
-#
-#                x = new_x
-#                y = new_y
-#
-#                new_x, new_y = get_coordinates()
-#
-#                while not valid_move(board, x, y, new_x, new_y) or not captured:
-#
-#                    sys.stdout.write("Please enter a valid move\nCoordinate(X Y):")
-#                    new_x, new_y = get_coordinates()
-#
-#                    update_board(board, x, y, new_x, new_y)
-#
-#                    captured = capture(board, new_x, new_y)
-#                
-#                    # Restore previous board state
-#                    board[x][y] = board[new_x][new_y]
-#                    board[new_x][new_y] = EMPTY
-#
-#                    if board[x][y] == KING:
-#                        king_pos[0] = x
-#                        king_pos[1] = y
-#     
-#                    if not captured: 
-#                        print("Invalid Move! To play again you must capture")
-#                
-#                update_board(board, x, y, new_x, new_y)
-#
-#                captured = capture(board, new_x, new_y)
-#
-#            else:
-#                break
-#
-#        else: 
-#            break
-#
-#    # Victory Conditions
-#    if king_fled(board):
-#        print("King Fled! Defenders Win!")
-#        sys.exit(0)	
-#
-#    if king_captured(board):
-#        print("King Captured! Raiders Win!")
-#        sys.exit(0)
-#
-#    attacker_turn = not attacker_turn
-
 if __name__=="__main__":
-
     app.run()

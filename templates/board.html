@@ -1,8 +1,15 @@
 <!doctype html>
 <html lang="en">
     <head>
+    
+        <!-- This document is very confusing. 
+             Split CSS and Javascript sections and put them in other files -->
 
         <style>
+
+            /* Every position is absolute. 
+               Test it on different monitors and try to make them relative.
+            */ 
 
             #raider{ 
                 position: absolute;
@@ -100,6 +107,19 @@
         </script>
 
         <script type="text/javascript">
+
+            /* TODO: Refactor the code. 
+                     It's ugly, it stinks, it's unreadable and I hate it
+
+               TODO: Show player whose turn it is
+
+               TODO: Fix cursor
+
+               TODO: Draw the squares based on the board the server sent
+            
+               TODO: Get server's print messages and display them to players
+            
+            */ 
 
             $( init );
 

@@ -346,8 +346,6 @@
                 newX = Math.ceil((ui.position.left+21)/80);
                 newY = Math.ceil((ui.position.top+40)/80);
                 
-                console.log(board);
-
                 var data = {
                     "x": x,
                     "y": y,
@@ -357,11 +355,6 @@
                     "board": board
                 }; 
                 
-                alert("X: " + x + " Y: " + y + 
-                        " NEW X: " + newX + " NEW Y: " + newY);                
-
-                console.log(data);
-
                 $.ajax( {
                 
                     url: 'send_move',
@@ -372,9 +365,6 @@
                     
                     success: function( response ) {
                        
-                        console.log(response);
-
-                        console.log(this.data);
 
                         var status = response["status"];            
                         
@@ -383,6 +373,7 @@
                         if (status == "OK") {
 
                             attackerTurn = response["turn"];
+                            var victoryMessage = response["v_mesg"];
                             board = response["board"];
 
                             $('#raiders').html('');
@@ -508,6 +499,11 @@
                     
                                     }
                                 }             
+                            }
+
+                            console.log(victoryMessage);
+                            if(victoryMessage) {
+                                alert(victoryMessage);
                             }
 
                             ui.draggable.addClass( 'correct' );

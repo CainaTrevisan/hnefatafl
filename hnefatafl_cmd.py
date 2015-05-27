@@ -2,39 +2,12 @@ import sys
 import os
 import math
 import socket
-from Flask import Flask, render_template, request, json
 
 # Modo de Uso
 if len(sys.argv) != 2:
     print ("Modo de Uso:")
     print ("<board>") #<servidor> <porta> <player>")
     sys.exit(1)
-
-
-hnefatafl = Flask(__name__)
-
-# Web 
-@hnefatafl.route('/')
-def hello():
-    return 'Hello!\nAdd "/hnefatafl" on the URL to play Hnefatafl'
-    
-@hnefatafl.route('/hnefatafl')
-def hnefatafl():
-    return render_template('board.html')
-
-@hnefatafl.route('/sendMove', methods=['POST'])
-def sendMove():
-    data = request.get_json()
-    print (data)
-
-    x = data["x"]
-    y = data["y"]
-    new_x = data["new_x"]
-    new_y = data["new_y"]
-
-    print("received:(%d,%d) (%d,%d)" % ( x, y, new_x, new_y ) )
-
-    return json.dumps({'status':'OK', 'x':x, 'y',y})
 
 # Global Variable
 neighbors     = ( (-1,0), (0,-1), (1,0), (0,1) )
@@ -270,7 +243,7 @@ def valid_move(board, x, y, new_x, new_y):
 
             elif (board[x][y] == KNIGHT):
                 if enemy == RAIDER:
-                    board[y][int(0.5*(x+new_x) )] = EMPTY
+                    board[ int(0.5*(x+new_x)) ][ y ] = EMPTY
                     return True
 
             elif ((board[x][y] == KING)):
@@ -439,10 +412,10 @@ while True:
 
 #    sock.listen(BACKLOG)
 #    connection, client_address = sock.accept()
-
+#
 #    if (PLAYER == 1):
-        # Ask coordinates
-
+#        # Ask coordinates
+#
 #    elif (PLAYER == 2):
 #        # Send board and ask movement from client
 #         

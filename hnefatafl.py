@@ -13,6 +13,7 @@ if len(sys.argv) != 2:
 #------------------------------------------------------------------------------
 # Global Variables
 neighbors     = ( (-1,0), (0,-1), (1,0), (0,1) )
+
 throne        = (6,6)
 king_pos      = (6,6) 
 attacker_turn = True
@@ -20,6 +21,58 @@ board         = []
 corners       = ( (1,1), (1,11), (11,1), (11,11) )
 adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
                 (10,2), (11,10), (10,11) )
+
+class Board():
+    def __init__(self):
+
+        attacker_turn = True
+
+        self.lines = 11
+
+        self.columns = 11
+
+        self.throne = (6,6)
+
+        self.king_pos = (6,6) 
+
+        self.corners = ( (1,1), (1,11), (11,1), (11,11) )
+
+        self.adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
+                             (10,2), (11,10), (10,11) )
+
+        self.board    = [['+','_','_','r','r','r','r','r','_','_','+'],
+                         ['_','_','_','_','_','r','_','_','_','_','_'],                 
+                         ['_','_','_','_','_','_','_','_','_','_','_'],                 
+                         ['r','_','_','_','_','s','_','_','_','_','r'],                 
+                         ['r','_','_','_','s','k','s','_','_','_','r'],                 
+                         ['r','r','_','s','s','K','s','s','_','r','r'],                 
+                         ['r','_','_','_','s','s','s','_','_','_','r'],                 
+                         ['r','_','_','_','_','s','_','_','_','_','r'],                 
+                         ['_','_','_','_','_','_','_','_','_','_','_'],                 
+                         ['_','_','_','_','_','r','_','_','_','_','_'],                 
+                         ['+','_','_','r','r','r','r','r','_','_','+']]
+
+
+    def __init__(self, variant):
+
+        self.board = [ ln.strip().split() for ln in open(variant, "r")]
+
+        self.lines = len(board)
+
+        self.columns = len(board[0])
+
+        self.corners = ( (1,1), (1,columns), (lines,1), (lines, columns) )
+
+        self.adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
+                             (lines,2), (lines,columns-1), (lines-1,columns) )
+
+        self.throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
+
+        self.king_pos = ( throne[0], throne[1] )
+
+        # Differentiate corners
+        for i,j in self.corners:
+            self.board[i][j] = '+'
 
 # Pieces
 KING       = 'K'
@@ -60,6 +113,8 @@ def send_move():
     board = data["board"]
 
     print("received: t:%d (%d,%d) (%d,%d)" % ( attacker_turn, x, y, new_x, new_y ) )
+
+    victory_message = ''
 
     print_board(board, 11, 11)
 
@@ -109,6 +164,15 @@ def send_move():
 #        if berserk and not captured: 
 #            print("Invalid Move! To play again you must capture")
 
+    # Victory Conditions
+    if king_fled(board):
+        print("King Fled! Defenders Win!")
+        victory_message = "King Fled! Defenders Win!"
+
+    if king_captured(board):
+        print("King Captured! Raiders Win!")
+        victory_message = "King Captured! Raiders Win!"
+
     remove_padding(board)
   
     print("Sending Board")
@@ -117,14 +181,14 @@ def send_move():
 
     attacker_turn = not attacker_turn;
 
-    return json.dumps( { 'status':'OK', 'board':board, 'turn': attacker_turn } )
+    return json.dumps( { 'status':'OK', 'board':board, 'turn': attacker_turn, 'v_mesg': victory_message } )
 
 @app.route('/start', methods=['GET'])
 def start():
     print ('Start Game: Sending initial board')
 
     f = open(sys.argv[1], "r")
-    board = [ ln.strip().split() for ln in f ]
+    board = [ ln.strip().split() for ln in open(sys.argv[1], "r") ]
 
     lines = len(board)
     columns = len(board[0])
@@ -137,10 +201,6 @@ def start():
     throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
 
     king_pos = ( throne[0], throne[1] )
-
-    # Differentiate corners
-    for i,j in ( (0, 0), (0, columns-1), (lines-1, 0), (lines-1, columns-1) ):
-        board[i][j] = '+'
 
     print_board(board, 11, 11)
 
@@ -293,7 +353,7 @@ def king_captured(board):
 
             adj+=1
 
-            if not( (king_pos[0]+i == throne[0]) and ([king_pos[1]+j == throne[1]]) ):
+            if not king_in_throne:
 
                 if i == 0:
                     hor_commanders+=1
@@ -388,7 +448,7 @@ def valid_move(board, x, y, new_x, new_y, attacker_turn):
 
             elif (board[x][y] == KNIGHT):
                 if enemy == RAIDER:
-                    board[y][int(0.5*(x+new_x) )] = EMPTY
+                    board[ int(0.5*(x+new_x)) ][ y ] = EMPTY
                     return True
 
             elif ((board[x][y] == KING)):

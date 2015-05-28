@@ -124,8 +124,9 @@
             $( init );
 
             var board;
-            
+            var kingPos; 
             var attackerTurn;
+            var berserk;
 
             function init() {
 
@@ -235,6 +236,8 @@
 
                     board = data["board"];
                     attackerTurn = data["turn"];
+                    kingPos = data["king"];
+                    berserk = data["berserk"];
 
                     var r = 0;
                     var c = 0;
@@ -351,6 +354,16 @@
                 });
             }
 
+            function resign() {
+           
+                if (attackerTurn) {
+                    alert("The Raiders gave up!\nThe defenders win!"); 
+                }
+                else {
+                    alert("The Defenders gave up!\nThe raiders win!"); 
+                } 
+            }            
+
             function handleOnMouseDown( event, ui ) {
 
                 x = Math.ceil(ui.position.left/80);
@@ -372,9 +385,13 @@
                     "new_x": newX,
                     "new_y": newY,
                     "turn" : attackerTurn,
-                    "board": board
+                    "board": board,
+                    "king": kingPos,
+                    "berserk": berserk
                 }; 
-                
+               
+                console.log(berserk); 
+
                 $.ajax( {
                 
                     url: 'send_move',
@@ -395,6 +412,8 @@
                             attackerTurn = response["turn"];
                             var victoryMessage = response["v_mesg"];
                             board = response["board"];
+                            kingPos = response["king"];
+                            berserk = response["berserk"];
 
                             $('#raiders').html('');
                             $('#commanders').html('');
@@ -559,6 +578,7 @@
         </div>
 
         <button onclick="init()"> Start </button> 
+        <button onclick="resign()"> Resign </button> 
 
     </body>
 </html>

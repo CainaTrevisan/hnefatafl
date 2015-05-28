@@ -17,7 +17,7 @@ if len(sys.argv) != 2:
 neighbors     = ( (-1,0), (0,-1), (1,0), (0,1) )
 
 throne        = (6,6)
-king_pos      = (6,6) 
+king_pos      = [6,6]
 attacker_turn = True
 board         = []
 corners       = ( (1,1), (1,11), (11,1), (11,11) )
@@ -36,14 +36,14 @@ class Board():
 
         self.throne = (6,6)
 
-        self.king_pos = (6,6) 
+        self.king_pos = [6,6]
 
         self.corners = ( (1,1), (1,11), (11,1), (11,11) )
 
         self.adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
                              (10,2), (11,10), (10,11) )
 
-        self.board    = [['_','_','_','r','r','r','r','r','_','_','_'],
+        self.board    = [['+','_','_','r','r','r','r','r','_','_','+'],
                          ['_','_','_','_','_','r','_','_','_','_','_'],                 
                          ['_','_','_','_','_','_','_','_','_','_','_'],                 
                          ['r','_','_','_','_','s','_','_','_','_','r'],                 
@@ -53,7 +53,7 @@ class Board():
                          ['r','_','_','_','_','s','_','_','_','_','r'],                 
                          ['_','_','_','_','_','_','_','_','_','_','_'],                 
                          ['_','_','_','_','_','r','_','_','_','_','_'],                 
-                         ['_','_','_','r','r','r','r','r','_','_','_']]
+                         ['+','_','_','r','r','r','r','r','_','_','+']]
 
 
     def __init__(self, variant):
@@ -71,7 +71,11 @@ class Board():
 
         self.throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
 
-        self.king_pos = ( throne[0], throne[1] )
+        self.king_pos = [ throne[0], throne[1] ]
+
+        # Differentiate corners
+        for i,j in corners:
+            board[i][j] = '+'
 
 # TODO: Create enum pieces
 # Pieces
@@ -114,6 +118,8 @@ def send_move():
     new_x = data["new_y"]
     attacker_turn = data["turn"]
     board = data["board"]
+    king_pos = data["king"]
+    berserk = data["berserk"]
 
     print("received: t:%d (%d,%d) (%d,%d)" % ( attacker_turn, x, y, new_x, new_y ) )
 
@@ -132,6 +138,8 @@ def send_move():
     
     columns = len(board[0])
 
+    neighbors = ( (-1,0), (0,-1), (1,0), (0,1) )
+
     corners = ( (1,1), (1,columns), (lines,1), (lines, columns) )
 
     adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
@@ -139,18 +147,17 @@ def send_move():
 
     throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
 
-    king_pos = ( throne[0], throne[1] )
-
-    if not valid_move(board, x, y, new_x, new_y, attacker_turn):
+    if not valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
         print("Please enter a valid move")
         return json.dumps( { 'status':"INV_MOVE" } )
 
-    update_board(board, x, y, new_x, new_y)
+    update_board(board, x, y, new_x, new_y, king_pos)
 
     captured = []
 
     captured = capture(board, new_x, new_y, captured, attacker_turn)
 
+    print(berserk)
     if captured:
 
         for i,j in captured: 
@@ -159,31 +166,46 @@ def send_move():
         print("Piece Captured!")                
 
 # TODO: Berserk rule
-#        # Berserk rule 
-#        if can_capture(board, new_x, new_y):
-#            berserk = True                    
-#        
-#        if berserk and not captured: 
-#            print("Invalid Move! To play again you must capture")
+#       # Berserk rule 
+        print("berserk") 
+        print(can_capture(board, new_x, new_y, attacker_turn))
+        if can_capture(board, new_x, new_y, attacker_turn):
+            if not berserk:
+                berserk = True                    
+        else:
+            berserk = False
+            attacker_turn = not attacker_turn
+    
+    elif berserk: 
+            # restore board
+            update_board(board, new_x, new_y, x, y, king_pos)
+
+            print("Invalid Move! To play again you must capture")
+            return json.dumps( { 'status':"INV_MOVE" } )
+
+    else:
+        attacker_turn = not attacker_turn
+
+    if not king_in_throne():
+        board[throne[0]][throne[1]] = HOSTILE_SQ
 
     # Victory Conditions
     if king_fled(board):
         print("King Fled! Defenders Win!")
         victory_message = "King Fled! Defenders Win!"
 
-    if king_captured(board):
+    if king_captured(board, king_pos):
         print("King Captured! Raiders Win!")
         victory_message = "King Captured! Raiders Win!"
 
     remove_padding(board)
   
     print("Sending Board")
-
+    print(berserk)
     print_board(board, 11, 11)
 
-    attacker_turn = not attacker_turn;
-
-    return json.dumps( { 'status':'OK', 'board':board, 'turn': attacker_turn, 'v_mesg': victory_message } )
+    return json.dumps( { 'status':'OK', 'board':board, 'king':king_pos, 
+            'turn': attacker_turn, 'berserk':berserk, 'v_mesg': victory_message } )
 
 
 #-------------------------------------------------------------------------------
@@ -201,9 +223,13 @@ def start():
 
     board = [ ln.strip().split() for ln in open(sys.argv[1], "r") ]
 
+    for i,j in ( (0,0), (0,10), (10,0), (10,10) ) :
+        board[i][j] = '+'
+
     print_board(board, 11, 11)
 
-    return json.dumps( { 'board':board, 'turn':True } )
+    return json.dumps( { 'board':board, 'king':[6,6], 
+            'berserk':False, 'turn':True } )
 
 #-------------------------------------------------------------------------------
 # Extend Matrix on all directions by one so that edge checking is not needed
@@ -234,7 +260,7 @@ def print_board(board, n, m):
 
     sys.stdout.write('  \t')
 
-    for i in range(0,n):
+    for i in range(1,n+1):
 
         sys.stdout.write(str(i) + ' ')
 
@@ -242,7 +268,7 @@ def print_board(board, n, m):
 
     for i in range(0,m):
 
-        sys.stdout.write(str(i) + '\t')
+        sys.stdout.write(str(i+1) + '\t')
 
         for j in range(0,n):
 
@@ -262,7 +288,7 @@ def king_fled(board):
 #-------------------------------------------------------------------------------
 def king_in_throne():
 
-    if king_pos == throne:
+    if (king_pos[0] == throne[0]) and (king_pos[1] == throne[1]):
             return True
 
     return False	
@@ -286,18 +312,14 @@ def king_near_corner():
     return False    
 
 #-------------------------------------------------------------------------------
-# Does not work when king is sandwiched by commanders. 
-# TODO: Make it work for every case it should. 
-
-def king_captured(board):
+def king_captured(board, king_pos):
 
     adj = 0
-    
+     
     vert_commanders = 0
     hor_commanders  = 0
 
     for i,j in neighbors:
-
         if board[king_pos[0]+i][king_pos[1]+j] == RAIDER:
             adj+=1
     
@@ -306,12 +328,10 @@ def king_captured(board):
 
             adj+=1
 
-            if not( (king_pos[0]+i == throne[0]) and ([king_pos[1]+j == throne[1]]) ):
-
-                if i == 0:
-                    hor_commanders+=1
-                else:
-                    vert_commanders+=1
+            if i == 0:
+                hor_commanders+=1
+            else:
+                vert_commanders+=1
 
     if (adj==4):
         return True
@@ -322,9 +342,7 @@ def king_captured(board):
     return False
 
 #-------------------------------------------------------------------------------
-# TODO: King short jumping everytime
-
-def valid_move(board, x, y, new_x, new_y, attacker_turn):
+def valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
 
     if (x < new_x):
         x_begin = x
@@ -348,7 +366,7 @@ def valid_move(board, x, y, new_x, new_y, attacker_turn):
         print("There is no piece on the given coordinates")
         return False
 
-    if board[new_x][new_y] != EMPTY:
+    if (board[new_x][new_y] != EMPTY) and (board[new_x][new_y] != HOSTILE_SQ):
         print("There is already a piece there")
         return False
 
@@ -356,7 +374,7 @@ def valid_move(board, x, y, new_x, new_y, attacker_turn):
         print("Only the King can stand on the corners!")  
         return False
 
-    if (new_x == throne[0]) and (new_y == throne[1]) and (board[x][y] != KING):
+    if ( (new_x, new_y) == throne ) and (board[x][y] != KING):
         print("Only the King may occupy the Throne")
         return False
 
@@ -416,18 +434,18 @@ def valid_move(board, x, y, new_x, new_y, attacker_turn):
 
         for i in range(x_begin+1, x_end):
             if board[i][new_y] != EMPTY:
-                print("There are pieces on the way")
+                print("There is a piece on the way")
                 return False
 
     else:
         print("The piece cannot move to this position")
-        print ("Pieces move like Towers in chess")
+        print ("Pieces move like Rooks in chess")
         return False
 
     return True
 
 #-------------------------------------------------------------------------------
-def can_capture(board, x, y):
+def can_capture(board, x, y, attacker_turn):
 
     for n in neighbors:
         
@@ -436,7 +454,7 @@ def can_capture(board, x, y):
 
         while (i<12) and (i>0) and (j<12) and (j>0) and (board[i][j] == EMPTY):
 
-            if capture(board, i, j, captured, attacker_turn):                         
+            if capture(board, i, j, [], attacker_turn):                         
                 return True
 
             if board[x][y] == KING:    
@@ -485,13 +503,16 @@ def capture(board, x, y, captured, attacker_turn):
     return captured
 
 #-------------------------------------------------------------------------------
-def update_board(board, x, y, new_x, new_y):
+def update_board(board, x, y, new_x, new_y, king_pos):
 
     board[new_x][new_y] = board[x][y]
+
     board[x][y] = EMPTY
 
     if board[new_x][new_y] == KING:
-        king_pos = (new_x, new_y)
+        king_pos[0] = new_x
+        king_pos[1] = new_y
+
 
 #-------------------------------------------------------------------------------
 # MAIN

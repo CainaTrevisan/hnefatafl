@@ -115,8 +115,6 @@
 
                TODO: Fix cursor
 
-               TODO: Draw the squares based on the board the server sent
-            
                TODO: Get server's print messages and display them to players
             
             */ 
@@ -137,9 +135,10 @@
                 $('#kings').html('');
                 $('#squares').html('');
 
-                // Draw Board
                 var squares = [];
 
+                // Draw Board
+/*
                 var x = 0;
                 var y = 0;
                 var newY = 0;
@@ -222,7 +221,7 @@
 
                     offsetY += 80;
                 }
-
+*/
                 var data;
 
                 // Get piece positions from server and draw them
@@ -233,7 +232,7 @@
                     var defenders = [];
                     var knights = [];
                     var kings = [];
-
+                    
                     board = data["board"];
                     attackerTurn = data["turn"];
                     kingPos = data["king"];
@@ -244,23 +243,41 @@
                     var d = 0;
                     var k = 0;
                     var king = 0;
+                
+                    var offsetY = 0; 
+                    var offsetX = 0; 
 
                     for (i=0; i<11; i++) {
                         
+                        offsetX = 0;
+
                         for (j=0; j<11; j++) {
                             
                             var pos = i*11+j;
 
+                            squares.push(pos);
+
                             switch (board[i][j]) {
                                 
                                 case 'r':
+
+                                    $('<div class="piece_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
                                     raiders.push(r);
 
                                     $('<div id="raider"> </div>').
-                                        data('raider', raiders[r]).
-                                        position( { of: $('#sq_' + pos + ''), 
-                                                my:'center center', at:'center center'}).
-                                        appendTo('#raiders').draggable( {
+                                    data('raider', raiders[r]).
+                                    position( { of: $('#sq_' + pos + ''), 
+                                            my:'center center', at:'center center'}).
+                                    appendTo('#raiders').draggable( {
 
                                         containment: '#board',
                                         stack: '#raiders div',
@@ -273,6 +290,20 @@
                                     break;
 
                                 case "c":
+
+                                    $('<div class="commander_square" id="sq_' 
+                                            + pos + '">' + '</div>').
+
+                                    data('square',squares[i*11+j]).
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
+
+
                                     commanders.push(c);
 
                                     $('<div id="commander"> </div>').
@@ -292,6 +323,17 @@
                                     break;
                                     
                                 case "s":
+
+                                    $('<div class="piece_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
                                     defenders.push(d);
 
                                     $('<div id="defender"> </div>').
@@ -311,6 +353,17 @@
                                     break;
 
                                 case "k":
+
+                                     $('<div class="piece_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+                                   
                                     knights.push(k);
 
                                     $('<div id="knight"> </div>').
@@ -330,6 +383,17 @@
                                     break;
 
                                 case "K":
+
+                                    $('<div class="hostile_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
                                     kings.push(king);
 
                                     $('<div id="king"> </div>').
@@ -347,9 +411,40 @@
                                     
                                     king++;
                                     break;
-            
+
+                                case "+":
+
+                                     $('<div class="hostile_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
+                                    break;
+
+                                case "_":
+
+                                    $('<div class="normal_square" id="sq_' + 
+                                            pos + '">' + '</div>').
+
+                                    css("top",offsetY).css("left", offsetX).
+                                    appendTo('#squares').droppable( { 
+
+                                        hoverClass: 'hovered',
+                                        drop:handleDropEvent
+                                    });
+
+                                    break;
                             }
+                            
+                            offsetX += 80;     
                         }             
+                        
+                        offsetY += 80;     
                     }
                 });
             }

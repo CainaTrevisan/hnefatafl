@@ -25,35 +25,34 @@ adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1),
                 (10,2), (11,10), (10,11) )
 
 # TODO: Make it work with different boards given as initial state
-class Board():
-    def __init__(self):
+class Game:
+    
+    attacker_turn = True
 
-        attacker_turn = True
+    lines = 11
 
-        self.lines = 11
+    columns = 11
 
-        self.columns = 11
+    throne = (6,6)
 
-        self.throne = (6,6)
+    king_pos = [6,6]
 
-        self.king_pos = [6,6]
+    corners = ( (0,0), (0,10), (10,0), (10,10) )
 
-        self.corners = ( (1,1), (1,11), (11,1), (11,11) )
+    adj_corners = ( (0,1), (1,0), (0,9), (1,10), (9,0), 
+                         (9,1), (10,9), (9,10) )
 
-        self.adj_corners = ( (1,2), (2,1), (1,10), (2,11), (10,1), 
-                             (10,2), (11,10), (10,11) )
-
-        self.board    = [['+','_','_','r','r','r','r','r','_','_','+'],
-                         ['_','_','_','_','_','r','_','_','_','_','_'],                 
-                         ['_','_','_','_','_','_','_','_','_','_','_'],                 
-                         ['r','_','_','_','_','s','_','_','_','_','r'],                 
-                         ['r','_','_','_','s','k','s','_','_','_','r'],                 
-                         ['r','r','_','s','s','K','s','s','_','r','r'],                 
-                         ['r','_','_','_','s','s','s','_','_','_','r'],                 
-                         ['r','_','_','_','_','s','_','_','_','_','r'],                 
-                         ['_','_','_','_','_','_','_','_','_','_','_'],                 
-                         ['_','_','_','_','_','r','_','_','_','_','_'],                 
-                         ['+','_','_','r','r','r','r','r','_','_','+']]
+    board = [['+','_','_','r','r','r','r','r','_','_','+'],
+             ['_','_','_','_','_','r','_','_','_','_','_'],                 
+             ['_','_','_','_','_','_','_','_','_','_','_'],                 
+             ['r','_','_','_','_','s','_','_','_','_','r'],                 
+             ['r','_','_','_','s','k','s','_','_','_','r'],                 
+             ['r','r','_','s','s','K','s','s','_','r','r'],                 
+             ['r','_','_','_','s','s','s','_','_','_','r'],                 
+             ['r','_','_','_','_','s','_','_','_','_','r'],                 
+             ['_','_','_','_','_','_','_','_','_','_','_'],                 
+             ['_','_','_','_','_','r','_','_','_','_','_'],                 
+             ['+','_','_','r','r','r','r','r','_','_','+']]
 
 
     def __init__(self, variant):
@@ -64,10 +63,10 @@ class Board():
 
         self.columns = len(board[0])
 
-        self.corners = ( (1,1), (1,columns), (lines,1), (lines, columns) )
+        self.corners = ( (0,0), (0,columns-1), (lines-1,0), (lines-1, columns-1) )
 
-        self.adj_corners = ( (1,2), (2,1), (1,columns-1), (2,columns), (lines-1,1), 
-                             (lines,2), (lines,columns-1), (lines-1,columns) )
+        self.adj_corners = ( (0,1), (1,0), (0,columns-2), (1,columns-1), (lines-2,0), 
+                             (lines-1,1), (lines-1,columns-2), (lines-2,columns-1) )
 
         self.throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
 
@@ -165,8 +164,7 @@ def send_move():
 
         print("Piece Captured!")                
 
-# TODO: Berserk rule
-#       # Berserk rule 
+        # Berserk rule 
         print("berserk") 
         print(can_capture(board, new_x, new_y, attacker_turn))
         if can_capture(board, new_x, new_y, attacker_turn):
@@ -223,13 +221,19 @@ def start():
 
     board = [ ln.strip().split() for ln in open(sys.argv[1], "r") ]
 
-    for i,j in ( (0,0), (0,10), (10,0), (10,10) ) :
+    lines = len(board)
+    
+    columns = len(board[0])
+
+    corners = ( (0,0), (0,columns-1), (lines-1,0), (lines-1, columns-1) )
+
+    for i,j in corners:
         board[i][j] = '+'
 
-    print_board(board, 11, 11)
+    print_board(board, lines, columns)
 
-    return json.dumps( { 'board':board, 'king':[6,6], 
-            'berserk':False, 'turn':True } )
+    return json.dumps( { 'board':board, 'king':king_pos, 
+            'berserk':False , 'turn':attacker_turn } )
 
 #-------------------------------------------------------------------------------
 # Extend Matrix on all directions by one so that edge checking is not needed
@@ -468,9 +472,6 @@ def can_capture(board, x, y, attacker_turn):
     return False
                 
 #-------------------------------------------------------------------------------
-# TODO: Currently every test that uses HOSTILE_SQ is probably not working
-# Fix it
-
 def capture(board, x, y, captured, attacker_turn):
 
     for n in neighbors:

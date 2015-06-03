@@ -13,48 +13,48 @@
 
             #raider{ 
                 position: absolute;
-                width: 43px; 
-                height: 80px;
+                width: 27px; 
+                height: 50px;
                 background-image: url(../static/images/raider.png);
                 background-repeat: no-repeat; 
             }
 
             #commander{ 
                 position: absolute;
-                width: 43px; 
-                height: 80px;
+                width: 27px; 
+                height: 50px;
                 background-image: url(../static/images/commander.png);
                 background-repeat: no-repeat; 
             }
 
             #defender{ 
                 position: absolute;
-                width: 43px; 
-                height: 80px;
+                width: 27px; 
+                height: 50px;
                 background-image: url(../static/images/defender.png);
                 background-repeat: no-repeat; 
             }
 
             #knight{ 
                 position: absolute;
-                width: 43px; 
-                height: 80px;
+                width: 27px; 
+                height: 50px;
                 background-image: url(../static/images/knight.png);
                 background-repeat: no-repeat; 
             }
 
             #king{ 
                 position: absolute;
-                width: 43px; 
-                height: 80px;
+                width: 27px; 
+                height: 50px;
                 background-image: url(../static/images/king.png);
                 background-repeat: no-repeat; 
             }
 
             div.normal_square { 
                 position: absolute;
-                width: 80px;
-                height: 80px; 
+                width: 50px;
+                height: 50px; 
                 border: 2px solid #999;
                 border-color: #3f2110;
                 background-color: #ded0b5;
@@ -62,8 +62,8 @@
 
             div.piece_square { 
                 position: absolute;
-                width: 80px;
-                height: 80px; 
+                width: 50px;
+                height: 50px; 
                 border: 2px solid #999;
                 border-color: #3f2110;
                 background-color: #917452;
@@ -71,8 +71,8 @@
 
             div.commander_square { 
                 position: absolute;
-                width: 80px;
-                height: 80px; 
+                width: 50px;
+                height: 50px; 
                 border: 2px solid #999;
                 border-color: #3f2110;
                 background-color: #6B5841;
@@ -80,8 +80,8 @@
             
             div.hostile_square{ 
                 position: absolute;
-                width: 80px;
-                height: 80px; 
+                width: 50px;
+                height: 50px; 
                 border: 2px solid #999;
                 border-color: #3f2110;
                 background-color: #3f2110;
@@ -108,15 +108,15 @@
 
         <script type="text/javascript">
 
-            /* TODO: Refactor the code. 
+            /* 
+               TODO: Refactor the code. 
                      It's ugly, it stinks, it's unreadable and I hate it
 
                TODO: Show player whose turn it is
 
                TODO: Fix cursor
 
-               TODO: Get server's print messages and display them to players
-            
+               TODO: Fix CSS positions to work with any monitor
             */ 
 
             $( init );
@@ -216,10 +216,10 @@
                         
                         }
 
-                        offsetX += 80;
+                        offsetX += 50;
                     }
 
-                    offsetY += 80;
+                    offsetY += 50;
                 }
 */
                 var data;
@@ -441,10 +441,10 @@
                                     break;
                             }
                             
-                            offsetX += 80;     
+                            offsetX += 50;     
                         }             
                         
-                        offsetY += 80;     
+                        offsetY += 50;     
                     }
                 });
             }
@@ -461,18 +461,18 @@
 
             function handleOnMouseDown( event, ui ) {
 
-                x = Math.ceil(ui.position.left/80);
-                y = Math.ceil(ui.position.top/80);
+                x = Math.ceil(ui.position.left/50);
+                y = Math.ceil(ui.position.top/50);
 
-
-                //position( { of: $('#sq_' + pos + ''), 
-                //    my: 'center center', at: 'center center'}).
             }
 
             function handleDropEvent( event, ui ) {
-         
-                newX = Math.ceil((ui.position.left+21)/80);
-                newY = Math.ceil((ui.position.top+40)/80);
+        
+                // I do not know why I am adding 10 and 21.
+                // But it only works this way 
+
+                newX = Math.ceil((ui.position.left+10)/50);
+                newY = Math.ceil((ui.position.top+21)/50);
                 
                 var data = {
                     "x": x,
@@ -645,6 +645,10 @@
                                     my: 'center center', at: 'center center' } );
                             $(this).droppable('disable');
                         }
+                        
+                        else {
+                            alert(response["mesg"]);      
+                        }
                     },
                     error: function( error ) {
                         console.log(error);
@@ -658,7 +662,7 @@
     </head>
     <body>
 
-        <div id="board" style="height: 880px; width: 880px;">
+        <div id="board" style="height: 550px; width: 550px;">
 
     
 

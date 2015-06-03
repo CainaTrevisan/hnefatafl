@@ -133,6 +133,8 @@ def send_move():
 
     add_padding(board)
 
+    print("added_padding")
+
     lines = len(board)
     
     columns = len(board[0])
@@ -146,17 +148,23 @@ def send_move():
 
     throne = ( int(math.ceil(0.5*lines)), int(math.ceil(0.5*columns)) )
 
-    if not valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
-        print("Please enter a valid move")
-        return json.dumps( { 'status':"INV_MOVE" } )
+    print("will teste move")
 
+    valid, mesg = valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn)
+    
+    print("damn")
+    
+    if not valid:
+        print("Please enter a valid move")
+        return json.dumps( { 'status':"INV_MOVE", 'mesg':mesg } )
+
+    print("will up boaodr")
     update_board(board, x, y, new_x, new_y, king_pos)
 
     captured = []
 
     captured = capture(board, new_x, new_y, captured, attacker_turn)
 
-    print(berserk)
     if captured:
 
         for i,j in captured: 
@@ -164,9 +172,10 @@ def send_move():
 
         print("Piece Captured!")                
 
-        # Berserk rule 
-        print("berserk") 
-        print(can_capture(board, new_x, new_y, attacker_turn))
+        # Berserk rule
+        # TODO: When in berserk player is forced to play again.
+        # He should have the option
+
         if can_capture(board, new_x, new_y, attacker_turn):
             if not berserk:
                 berserk = True                    
@@ -178,7 +187,7 @@ def send_move():
             # restore board
             update_board(board, new_x, new_y, x, y, king_pos)
 
-            print("Invalid Move! To play again you must capture")
+            mesg = "Invalid Move! To play again you must capture"
             return json.dumps( { 'status':"INV_MOVE" } )
 
     else:
@@ -199,7 +208,7 @@ def send_move():
     remove_padding(board)
   
     print("Sending Board")
-    print(berserk)
+
     print_board(board, 11, 11)
 
     return json.dumps( { 'status':'OK', 'board':board, 'king':king_pos, 
@@ -362,34 +371,39 @@ def valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
     else:
         y_begin = new_y
         y_end = y
+    
+    print("inside valid")
         
-# Throughout the code there is many prints telling what went wrong.
-# TODO: Send them to the front-end to display them to the user      
-
     if board[x][y] == EMPTY:
-        print("There is no piece on the given coordinates")
-        return False
+        mesg = "There is no piece on the given coordinates"
+        print(mesg)
+        return ( False, mesg )
 
     if (board[new_x][new_y] != EMPTY) and (board[new_x][new_y] != HOSTILE_SQ):
-        print("There is already a piece there")
-        return False
+        mesg = "There is already a piece there"
+        print(mesg)
+        return ( False, mesg )
 
     if (board[new_x][new_y] == HOSTILE_SQ) and (board[x][y] != KING):
-        print("Only the King can stand on the corners!")  
-        return False
+        mesg = "Only the King can stand on the corners!"
+        print(mesg)
+        return ( False, mesg )
 
     if ( (new_x, new_y) == throne ) and (board[x][y] != KING):
-        print("Only the King may occupy the Throne")
-        return False
+        mesg = "Only the King may occupy the Throne"
+        print(mesg)
+        return ( False, mesg )
 
     if attacker_turn:
         if (board[x][y] == KING) or (board[x][y] == SOLDIER) or (board[x][y] == KNIGHT):
-            print("You cannot move enemy pieces!")
-            return False
+            mesg = "You cannot move enemy pieces!"
+            print(mesg)
+            return ( False, mesg )
     
     elif (board[x][y] == RAIDER) or (board[x][y] == COMMANDER):
-        print("You cannot move enemy pieces!")
-        return False
+        mesg = "You cannot move enemy pieces!"
+        print(mesg)
+        return ( False, mesg )
 
     if new_x == x:
 
@@ -398,23 +412,24 @@ def valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
         if abs(y - new_y) == 2:
             if board[x][y] == COMMANDER:
                 if enemy == SOLDIER:
-                    return True
+                    return ( True, "" )
 
             elif (board[x][y] == KNIGHT):
                 if enemy == RAIDER:
                     board[x][int( 0.5*(y+new_y) )] = EMPTY
-                    return True
+                    return ( True, "" )
 
             elif (board[x][y] == KING):
                 if enemy == RAIDER and (king_in_throne() or 
                         (board[new_x][new_y] == HOSTILE_SQ) ):
 
-                    return True
+                    return ( True, "" )
 
         for i in range(y_begin+1, y_end):
             if board[new_x][i] != EMPTY:
-                print("There is a piece on the way")
-                return False
+                mesg = "There is a piece on the way"
+                print(mesg)
+                return ( False, mesg )
 
     elif new_y == y:
 
@@ -423,30 +438,32 @@ def valid_move(board, x, y, new_x, new_y, king_pos, attacker_turn):
         if abs(x - new_x) == 2:
             if board[x][y] == COMMANDER:
                 if enemy == SOLDIER:
-                    return True
+                    return ( True, "" )
 
             elif (board[x][y] == KNIGHT):
                 if enemy == RAIDER:
                     board[ int(0.5*(x+new_x)) ][ y ] = EMPTY
-                    return True
+                    return ( True, "" )
 
             elif ((board[x][y] == KING)):
                 if enemy == RAIDER and (king_in_throne() or 
                         (board[new_x][new_y] == HOSTILE_SQ) ):
 
-                    return True
+                    return ( True, "" )
 
         for i in range(x_begin+1, x_end):
             if board[i][new_y] != EMPTY:
-                print("There is a piece on the way")
-                return False
+                mesg = "There is a piece on the way"
+                print(mesg)
+                return ( False, mesg )
 
     else:
-        print("The piece cannot move to this position")
-        print ("Pieces move like Rooks in chess")
-        return False
+        mesg = "The piece cannot move to this position.\nPieces move like Rooks in Chess"
+        return ( False, mesg )
 
-    return True
+    print("fuck this")
+
+    return ( True, "" )
 
 #-------------------------------------------------------------------------------
 def can_capture(board, x, y, attacker_turn):
@@ -519,4 +536,4 @@ def update_board(board, x, y, new_x, new_y, king_pos):
 # MAIN
 #-------------------------------------------------------------------------------
 if __name__=="__main__":
-    app.run()
+    app.run(host='0.0.0.0')
